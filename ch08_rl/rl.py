@@ -14,11 +14,11 @@ class DecisionPolicy:
         pass
 
 
-class RandomDecisionPolicy(DecisionPolicy):
+class RandomDecisionPolicy(DecisionPolicy): #Inherit from DecisionPolicy to implement its functions
     def __init__(self, actions):
         self.actions = actions
 
-    def select_action(self, current_state, step):
+    def select_action(self, current_state, step): #Randomly choose the next action
         action = self.actions[random.randint(0, len(self.actions) - 1)]
         return action
 
@@ -67,42 +67,42 @@ class QLearningDecisionPolicy(DecisionPolicy):
 
 
 def run_simulation(policy, initial_budget, initial_num_stocks, prices, hist, debug=False):
-    budget = initial_budget
-    num_stocks = initial_num_stocks
-    share_value = 0
+    budget = initial_budget #Initialize values that depend on computing the net worth of a portfolio
+    num_stocks = initial_num_stocks #Initialize values that depend on computing the net worth of a portfolio
+    share_value = 0 #Initialize values that depend on computing the net worth of a portfolio
     transitions = list()
     for i in range(len(prices) - hist - 1):
         if i % 100 == 0:
             print('progress {:.2f}%'.format(float(100*i) / (len(prices) - hist - 1)))
-        current_state = np.asmatrix(np.hstack((prices[i:i+hist], budget, num_stocks)))
-        current_portfolio = budget + num_stocks * share_value
-        action = policy.select_action(current_state, i)
+        current_state = np.asmatrix(np.hstack((prices[i:i+hist], budget, num_stocks))) #The state is a `hist+2` dimensional vector. We’ll force it to by a numpy matrix.
+        current_portfolio = budget + num_stocks * share_value #Calculate the portfolio value
+        action = policy.select_action(current_state, i) #Select an action from the current policy
         share_value = float(prices[i + hist + 1])
-        if action == 'Buy' and budget >= share_value:
+        if action == 'Buy' and budget >= share_value: #Update portfolio values based on action
             budget -= share_value
             num_stocks += 1
-        elif action == 'Sell' and num_stocks > 0:
+        elif action == 'Sell' and num_stocks > 0: #Update portfolio values based on action
             budget += share_value
             num_stocks -= 1
-        else:
+        else: #Update portfolio values based on action
             action = 'Hold'
-        new_portfolio = budget + num_stocks * share_value
-        reward = new_portfolio - current_portfolio
+        new_portfolio = budget + num_stocks * share_value #Compute new portfolio value after taking action
+        reward = new_portfolio - current_portfolio #Compute the reward from taking an action at a state
         next_state = np.asmatrix(np.hstack((prices[i+1:i+hist+1], budget, num_stocks)))
         transitions.append((current_state, action, reward, next_state))
-        policy.update_q(current_state, action, reward, next_state)
+        policy.update_q(current_state, action, reward, next_state) #Update the policy after experiencing a new action
 
-    portfolio = budget + num_stocks * share_value
+    portfolio = budget + num_stocks * share_value #Compute final portfolio worth
     if debug:
         print('${}\t{} shares'.format(budget, num_stocks))
     return portfolio
 
 
 def run_simulations(policy, budget, num_stocks, prices, hist):
-    num_tries = 10
-    final_portfolios = list()
+    num_tries = 10 #Compute final portfolio worth
+    final_portfolios = list() #Store portfolio worth of each run in this array
     for i in range(num_tries):
-        final_portfolio = run_simulation(policy, budget, num_stocks, prices, hist)
+        final_portfolio = run_simulation(policy, budget, num_stocks, prices, hist) #Run this simulation
         final_portfolios.append(final_portfolio)
     avg, std = np.mean(final_portfolios), np.std(final_portfolios)
     return avg, std
@@ -131,7 +131,7 @@ def plot_prices(prices):
 if __name__ == '__main__':
     prices = get_prices('MSFT', '1992-07-22', '2016-07-22')
     plot_prices(prices)
-    actions = ['Buy', 'Sell', 'Hold']
+    actions = ['Buy', 'Sell', 'Hold'] #Define the list of actions the agent can take
     hist = 200
     # policy = RandomDecisionPolicy(actions)
     policy = QLearningDecisionPolicy(actions, hist + 2)
